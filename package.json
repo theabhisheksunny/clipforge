@@ -1,8 +1,8 @@
 {
-  "name": "kiro-video-editor",
+  "name": "clipforge",
   "version": "0.1.0",
-  "description": "A modern cross-platform desktop video editor built with Electron, React, TypeScript and FFmpeg",
-  "author": "Kiro Video Editor",
+  "description": "ClipForge - a modern cross-platform desktop video editor built with Electron, React, TypeScript and FFmpeg",
+  "author": "ClipForge",
   "license": "MIT",
   "main": "dist/main/main.js",
   "type": "module",

@@ -12,6 +12,7 @@ import {
   SettingsIcon,
 } from '../Icons';
 import { ALL_MEDIA_EXTENSIONS } from '@shared/types';
+import { APP_NAME } from '@shared/constants';
 
 export function Toolbar({
   onExport,
@@ -47,7 +48,7 @@ export function Toolbar({
   return (
     <div className="h-12 shrink-0 flex items-center gap-1 px-3 border-b border-panel-border bg-panel">
       <div className="flex items-center gap-2 mr-3">
-        <span className="font-semibold text-sm text-gray-100">Kiro Video Editor</span>
+        <span className="font-semibold text-sm text-gray-100">{APP_NAME}</span>
         <span className="text-xs text-gray-500">
           {projectName}
           {dirty ? ' •' : ''}

@@ -36,7 +36,7 @@ function createWindow(): void {
     minHeight: 700,
     backgroundColor: '#141518',
     show: false,
-    title: 'Kiro Video Editor',
+    title: 'ClipForge',
     webPreferences: {
       preload: join(__dirname, '../preload/preload.cjs'),
       contextIsolation: true,

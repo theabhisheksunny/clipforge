@@ -1,6 +1,6 @@
 import type { AspectRatioPreset, Canvas } from '../types/project';
 
-export const APP_NAME = 'Kiro Video Editor';
+export const APP_NAME = 'ClipForge';
 
 export const DEFAULT_CANVAS: Canvas = {
   width: 1920,

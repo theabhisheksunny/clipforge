@@ -1,4 +1,4 @@
-# Kiro Video Editor
+# ClipForge
 
 A modern, cross-platform desktop video editor built with **Electron + React + TypeScript**, using **FFmpeg** for all media processing. Editing is fully non-destructive: original files are never modified, and the timeline stores editing instructions that are translated into an FFmpeg filter graph only at export time.
 
