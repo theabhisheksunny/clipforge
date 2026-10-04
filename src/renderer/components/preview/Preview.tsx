@@ -128,6 +128,9 @@ export function Preview() {
 
   const { canvas } = project;
   const aspect = canvas.width / canvas.height;
+  const objectFit =
+    canvas.fitMode === 'fill' ? 'cover' : canvas.fitMode === 'stretch' ? 'fill' : 'contain';
+  const baseScale = activeClip?.transform.scale ?? 1;
 
   return (
     <div className="flex-1 flex items-center justify-center bg-black/60 p-4 overflow-hidden">
@@ -141,11 +144,16 @@ export function Preview() {
           height: aspect >= 1 ? 'auto' : '100%',
         }}
       >
-        {/* Base video */}
+        {/* Base video — object-fit follows the project fitMode so the preview
+            matches the exported framing; transform.scale zooms it. */}
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-contain bg-black"
-          style={{ display: activeClip ? 'block' : 'none' }}
+          className="absolute inset-0 h-full w-full bg-black"
+          style={{
+            display: activeClip ? 'block' : 'none',
+            objectFit,
+            transform: `scale(${baseScale})`,
+          }}
           playsInline
         />
 
@@ -179,11 +187,13 @@ function ImageOverlayView({ clip, assetPath }: { clip: TimelineClip; assetPath: 
       style={{
         left: `${transform.x * 100}%`,
         top: `${transform.y * 100}%`,
-        transform: `translate(-50%, -50%) scale(${transform.scale}) rotate(${transform.rotation}deg)
+        // Overlay bounding box = transform.scale of the canvas, aspect
+        // preserved — matches the export's overlay scaling.
+        maxWidth: `${transform.scale * 100}%`,
+        maxHeight: `${transform.scale * 100}%`,
+        transform: `translate(-50%, -50%) rotate(${transform.rotation}deg)
           scaleX(${transform.flipHorizontal ? -1 : 1}) scaleY(${transform.flipVertical ? -1 : 1})`,
         opacity: transform.opacity,
-        maxWidth: '60%',
-        maxHeight: '60%',
       }}
     />
   );

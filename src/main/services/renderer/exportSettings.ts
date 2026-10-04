@@ -4,6 +4,7 @@
 
 import {
   RESOLUTION_DIMENSIONS,
+  type Canvas,
   type ExportSettings,
   type ExportVideoCodec,
   type ExportAudioCodec,
@@ -50,8 +51,41 @@ function audioCodecArgs(codec: ExportAudioCodec): string[] {
   }
 }
 
-export function buildEncoderConfig(settings: ExportSettings, sourceFps: number): EncoderConfig {
-  const dims = RESOLUTION_DIMENSIONS[settings.resolution];
+/** Round to the nearest even integer (H.264/HEVC require even dimensions). */
+function even(n: number): number {
+  return Math.max(2, Math.round(n / 2) * 2);
+}
+
+/**
+ * Derive export dimensions from the project canvas aspect ratio, using the
+ * selected resolution preset as a QUALITY TIER (its shorter edge sets the
+ * target). This makes a 9:16 project export 1080x1920 at "1080p", a 1:1 project
+ * 1080x1080, etc. — instead of forcing every export to the preset's 16:9 size.
+ */
+export function resolveExportDimensions(
+  canvas: Canvas,
+  resolution: ExportSettings['resolution'],
+): { width: number; height: number } {
+  const preset = RESOLUTION_DIMENSIONS[resolution];
+  // The quality tier is the preset's shorter edge (e.g. 1080p => 1080).
+  const tier = Math.min(preset.width, preset.height);
+  const cw = canvas.width > 0 ? canvas.width : 16;
+  const ch = canvas.height > 0 ? canvas.height : 9;
+  const ratio = cw / ch;
+  if (ratio >= 1) {
+    // Landscape or square: height = tier, width from ratio.
+    return { width: even(tier * ratio), height: even(tier) };
+  }
+  // Portrait: width = tier, height from ratio.
+  return { width: even(tier), height: even(tier / ratio) };
+}
+
+export function buildEncoderConfig(
+  settings: ExportSettings,
+  sourceFps: number,
+  canvas: Canvas,
+): EncoderConfig {
+  const dims = resolveExportDimensions(canvas, settings.resolution);
   const crf =
     settings.quality === 'custom' && settings.customCrf != null
       ? settings.customCrf

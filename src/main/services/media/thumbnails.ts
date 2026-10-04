@@ -3,7 +3,7 @@
  * their results so the UI stays responsive (spec sections 14, 28).
  */
 
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { runFfmpeg } from '../ffmpeg/ffmpegRunner';
 import { cacheFilePath } from '../cache/cachePaths';
@@ -92,7 +92,15 @@ export async function generateWaveform(
       '-y', pcmFile,
     ],
   });
-  if (result.code !== 0 || !existsSync(pcmFile)) return null;
+  if (result.code !== 0 || !existsSync(pcmFile)) {
+    // Clean up a partial temp file on failure.
+    try {
+      if (existsSync(pcmFile)) rmSync(pcmFile, { force: true });
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
 
   let peaks: number[];
   try {
@@ -112,6 +120,13 @@ export async function generateWaveform(
     }
   } catch {
     return null;
+  } finally {
+    // The decoded PCM is only needed to compute peaks; never leave it behind.
+    try {
+      if (existsSync(pcmFile)) rmSync(pcmFile, { force: true });
+    } catch {
+      /* ignore */
+    }
   }
 
   const data: WaveformData = { assetId, peaks, samplesPerPeak: sampleRate };

@@ -152,12 +152,13 @@ export async function exportProject(
     const sourceFps =
       assetById.get(project.clips[0].assetId)?.metadata.videoStreams[0]?.fps ||
       project.canvas.fps;
-    const encoder = buildEncoderConfig(settings, sourceFps);
+    const encoder = buildEncoderConfig(settings, sourceFps, project.canvas);
 
     const graph = buildFilterGraph(project, {
       canvasWidth: encoder.width,
       canvasHeight: encoder.height,
       fps: encoder.fps ?? project.canvas.fps,
+      fitMode: project.canvas.fitMode,
       assetById,
     });
 

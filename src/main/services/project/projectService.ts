@@ -33,6 +33,14 @@ export function saveProjectToPath(project: Project, path: string): void {
   writeFileSync(path, serializeProject(project), 'utf-8');
 }
 
+/** Fill in fields added in later versions so older project files still load. */
+function migrateProject(project: Project): Project {
+  const canvas = { ...project.canvas };
+  // fitMode was added after v1; default older projects to letterbox 'fit'.
+  if (!canvas.fitMode) canvas.fitMode = 'fit';
+  return { ...project, canvas };
+}
+
 export function loadProjectFromPath(path: string): ProjectFile {
   const raw = readFileSync(path, 'utf-8');
   let parsed: ProjectFile;
@@ -44,8 +52,7 @@ export function loadProjectFromPath(path: string): ProjectFile {
   if (!parsed.project || typeof parsed.version !== 'number') {
     throw new Error('The project file is missing required data.');
   }
-  // Future migrations keyed on parsed.version would run here.
-  const project = markMissingAssets(parsed.project);
+  const project = migrateProject(markMissingAssets(parsed.project));
   return { version: parsed.version, project, savedPath: path };
 }
 

@@ -43,6 +43,7 @@ const OPTS = (project: Project) => ({
   canvasWidth: 1920,
   canvasHeight: 1080,
   fps: 30,
+  fitMode: 'fit' as const,
   assetById: assetMap(project),
 });
 

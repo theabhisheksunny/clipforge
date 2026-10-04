@@ -11,13 +11,25 @@ import type { MediaAsset } from './media';
 export const PROJECT_FILE_VERSION = 1;
 export const PROJECT_FILE_EXTENSION = 'vedit';
 
-export type AspectRatioPreset = '16:9' | '9:16' | '1:1' | '4:3' | '4:5' | 'custom';
+export type AspectRatioPreset = '16:9' | '9:16' | '1:1' | '4:3' | '4:5' | '21:9' | 'custom';
+
+/**
+ * How a base-track source frame is mapped onto the canvas when their aspect
+ * ratios differ (spec section 10).
+ *  - fit:     entire source visible, letterbox/pillarbox bars (default).
+ *  - fill:    cover the canvas, cropping the overflow (no bars).
+ *  - stretch: distort the source to exactly fill the canvas.
+ * (A manual crop region is expressed per-clip via TimelineClip.crop.)
+ */
+export type FitMode = 'fit' | 'fill' | 'stretch';
 
 export interface Canvas {
   width: number;
   height: number;
   fps: number;
   aspectRatio: AspectRatioPreset;
+  /** How base-track sources map onto the canvas when aspect ratios differ. */
+  fitMode: FitMode;
   /** Background color behind clips, hex (#rrggbb). */
   backgroundColor: string;
 }

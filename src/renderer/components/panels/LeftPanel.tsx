@@ -2,6 +2,7 @@ import { useEditorStore, type MediaPanelTab } from '../../stores/editorStore';
 import { MediaLibrary } from '../media-library/MediaLibrary';
 import { TextPanel } from './TextPanel';
 import { TransitionsPanel } from './TransitionsPanel';
+import { CanvasPanel } from './CanvasPanel';
 import {
   VideoIcon,
   MusicIcon,
@@ -9,6 +10,7 @@ import {
   ImageIcon,
   EffectsIcon,
   TransitionIcon,
+  CanvasIcon,
 } from '../Icons';
 
 const TABS: { id: MediaPanelTab; label: string; icon: React.ReactNode }[] = [
@@ -16,6 +18,7 @@ const TABS: { id: MediaPanelTab; label: string; icon: React.ReactNode }[] = [
   { id: 'audio', label: 'Audio', icon: <MusicIcon width={16} height={16} /> },
   { id: 'text', label: 'Text', icon: <TextIcon width={16} height={16} /> },
   { id: 'images', label: 'Images', icon: <ImageIcon width={16} height={16} /> },
+  { id: 'canvas', label: 'Canvas', icon: <CanvasIcon width={16} height={16} /> },
   { id: 'effects', label: 'Effects', icon: <EffectsIcon width={16} height={16} /> },
   { id: 'transitions', label: 'Transitions', icon: <TransitionIcon width={16} height={16} /> },
 ];
@@ -42,6 +45,7 @@ export function LeftPanel() {
       <div className="flex-1 min-h-0">
         {(activeTab === 'media' || activeTab === 'audio' || activeTab === 'images') && <MediaLibrary />}
         {activeTab === 'text' && <TextPanel />}
+        {activeTab === 'canvas' && <CanvasPanel />}
         {activeTab === 'transitions' && <TransitionsPanel />}
         {activeTab === 'effects' && (
           <div className="p-4 text-sm text-gray-500 text-center mt-8">

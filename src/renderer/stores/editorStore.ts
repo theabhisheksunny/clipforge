@@ -7,7 +7,14 @@ import { create } from 'zustand';
 import type { TimelineClip } from '@shared/types';
 import { DEFAULT_PX_PER_SECOND, MIN_PX_PER_SECOND, MAX_PX_PER_SECOND } from '@shared/constants';
 
-export type MediaPanelTab = 'media' | 'audio' | 'text' | 'images' | 'effects' | 'transitions';
+export type MediaPanelTab =
+  | 'media'
+  | 'audio'
+  | 'text'
+  | 'images'
+  | 'effects'
+  | 'transitions'
+  | 'canvas';
 export type SelectionKind = 'clip' | 'text' | null;
 
 interface EditorState {
