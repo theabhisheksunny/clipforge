@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #141518;
+  color: #e4e6eb;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Thin, dark scrollbars to match the editor chrome. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #35363c;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #45464c;
+  background-clip: padding-box;
+}
+
+input[type='range'] {
+  accent-color: #4f8cff;
+}
+
+@layer components {
+  .panel {
+    @apply bg-panel border border-panel-border rounded-lg;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm
+      font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply btn text-gray-300 hover:bg-panel-raised;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover;
+  }
+  .icon-btn {
+    @apply inline-flex items-center justify-center h-8 w-8 rounded-md text-gray-300
+      hover:bg-panel-raised transition-colors disabled:opacity-40;
+  }
+}
