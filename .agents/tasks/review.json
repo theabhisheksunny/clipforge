@@ -1,0 +1,13 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "label": "PiP overlay scale regression",
+      "detail": "videoProcessingSteps in filterGraph.ts always scales every clip to the full canvas and no longer applies clip.transform.scale. Previously higher-track (PiP) video clips were scaled by transform.scale, so PiP clips that used to be shrunk now fill the frame. This is correct for base-track clips but is a behavioral regression for overlay/PiP clips. It is outside the Loop Video to Audio feature scope (which never uses PiP) but is bundled in this diff. Recommend restoring transform.scale for overlay clips in a follow-up.",
+      "file": "src/main/services/renderer/filterGraph.ts"
+    }
+  ],
+  "reviewDoc": "d:\\PROJECT-FINAL\\video editor\\.worktrees\\loop-video-to-audio\\.agents\\tasks\\review.md"
+}
