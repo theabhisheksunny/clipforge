@@ -9,6 +9,10 @@ directories:
 files:
   - dist/**/*
   - package.json
+  # Ship the icon inside the app so the runtime BrowserWindow/taskbar icon
+  # resolves in the packaged build (not only the installer).
+  - build/icon.ico
+  - build/icon.png
 
 # FFmpeg/FFprobe binaries must stay on disk (not inside the asar) so they can be
 # spawned as child processes. ffmpegLocator rewrites app.asar -> app.asar.unpacked.
@@ -17,12 +21,18 @@ asarUnpack:
   - node_modules/ffprobe-static/**
 
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:
         - x64
   artifactName: ${productName}-${version}-win-${arch}.${ext}
-  # Local/unsigned builds. Set a certificate (CSC_LINK) for distribution.
+  # This machine cannot extract electron-builder's winCodeSign package (its
+  # symlinks require Developer Mode/admin), which electron-builder needs for the
+  # combined sign+rcedit step. We therefore disable that step here and embed the
+  # app icon into the exe with rcedit directly (see scripts/apply-win-icon.mjs).
+  # On a normal/CI machine, remove this line and electron-builder embeds the
+  # icon itself from win.icon above.
   signAndEditExecutable: false
 
 nsis:
@@ -33,6 +43,7 @@ nsis:
   createStartMenuShortcut: true
 
 mac:
+  icon: build/icon.png
   category: public.app-category.video
   target:
     - target: dmg
@@ -47,6 +58,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
 
 linux:
+  icon: build/icon.png
   category: AudioVideo
   target:
     - target: AppImage

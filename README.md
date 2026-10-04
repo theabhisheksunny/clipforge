@@ -103,6 +103,19 @@ On startup the app verifies both binaries by running `-version`. If either is un
 
 ---
 
+## Application icon
+
+The ClipForge icon lives in `build/`:
+
+- `build/icon.png` — 1024×1024 master (used for macOS and Linux)
+- `build/icon.ico` — multi-size Windows icon (16–256 px)
+
+It is applied in three places: the runtime window/taskbar icon (`BrowserWindow.icon` in `src/main/main.ts`), the installers (`win.icon` / `mac.icon` / `linux.icon` in `electron-builder.yml`), and the Windows exe resource.
+
+On a normal dev/CI machine, `npm run package:win` embeds the exe icon automatically. On a machine that cannot extract electron-builder's `winCodeSign` package (its symlinks require Windows Developer Mode or admin), that step is disabled via `win.signAndEditExecutable: false`; use `npm run package:win:dir` instead, which packages and then embeds the exe icon with `scripts/apply-win-icon.mjs` using the cached `rcedit`.
+
+---
+
 ## Architecture
 
 Strict separation between the Electron main process (Node, heavy work) and the React renderer (UI only). The renderer never has Node access; it talks to main exclusively through a validated preload bridge (`window.editorApi`).

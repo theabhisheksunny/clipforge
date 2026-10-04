@@ -20,11 +20,31 @@ import {
   registerMediaProtocolHandler,
 } from './services/media/mediaProtocol';
 
+import { existsSync } from 'node:fs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 // Privileged schemes must be registered before the app is ready.
 registerMediaProtocolSchemes();
+
+/**
+ * Resolve the application icon for the window/taskbar. Prefer the platform
+ * format (.ico on Windows, .png elsewhere). Built output lives in dist/main, so
+ * the project `build/` dir is two levels up in dev and shipped alongside dist
+ * in the packaged app (see electron-builder `files`).
+ */
+function resolveAppIcon(): string | undefined {
+  const file = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+  const candidates = [
+    // dev (dist/main -> project root/build) and packaged (app.asar/dist/main
+    // -> app.asar/build) both resolve two levels up from this file.
+    join(__dirname, '../../build', file),
+    // Fallback: unpacked resources dir.
+    join(process.resourcesPath ?? '', 'build', file),
+  ];
+  return candidates.find((p) => existsSync(p));
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -37,6 +57,7 @@ function createWindow(): void {
     backgroundColor: '#141518',
     show: false,
     title: 'ClipForge',
+    icon: resolveAppIcon(),
     webPreferences: {
       preload: join(__dirname, '../preload/preload.cjs'),
       contextIsolation: true,
@@ -99,6 +120,9 @@ function send(channel: string): void {
 }
 
 app.whenReady().then(async () => {
+  // Windows groups taskbar items (and shows the correct icon) by AppUserModelID.
+  if (process.platform === 'win32') app.setAppUserModelId('com.clipforge.app');
+
   ensureCacheDirs();
   cleanStaleCache();
 
