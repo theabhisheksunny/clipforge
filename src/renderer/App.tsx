@@ -6,6 +6,7 @@ import { Preview } from './components/preview/Preview';
 import { Timeline } from './components/timeline/Timeline';
 import { Inspector } from './components/inspector/Inspector';
 import { ExportDialog } from './components/dialogs/ExportDialog';
+import { DiagnosticsDialog } from './components/dialogs/DiagnosticsDialog';
 import { ContextMenuRoot } from './components/ContextMenu';
 import { FfmpegBanner } from './components/FfmpegBanner';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -15,6 +16,7 @@ import { PROJECT_FILE_EXTENSION } from '@shared/types';
 export function App() {
   const [showExport, setShowExport] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   useKeyboardShortcuts();
 
   const project = useProjectStore((s) => s.project);
@@ -125,7 +127,7 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen bg-panel-sunken text-gray-200">
-      <Toolbar onExport={() => setShowExport(true)} />
+      <Toolbar onExport={() => setShowExport(true)} onOpenDiagnostics={() => setShowDiagnostics(true)} />
       <FfmpegBanner />
 
       {/* Upper area: left panel | preview | inspector */}
@@ -149,6 +151,7 @@ export function App() {
       <TransportBar />
 
       {showExport && <ExportDialog onClose={() => setShowExport(false)} />}
+      {showDiagnostics && <DiagnosticsDialog onClose={() => setShowDiagnostics(false)} />}
       {showShortcuts && <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
       <ContextMenuRoot />
     </div>

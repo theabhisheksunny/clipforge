@@ -35,6 +35,8 @@ export const IPC = {
   dialogSaveFile: 'system:save-file',
   openPath: 'system:open-path',
   showInFolder: 'system:show-in-folder',
+  diagnostics: 'system:diagnostics',
+  testFfmpeg: 'system:test-ffmpeg',
 } as const;
 
 export interface FfmpegStatus {
@@ -42,7 +44,24 @@ export interface FfmpegStatus {
   ffmpegPath: string | null;
   ffprobePath: string | null;
   ffmpegVersion: string | null;
+  ffprobeVersion: string | null;
   error?: string;
+}
+
+/** Diagnostics snapshot surfaced in Settings → Diagnostics. */
+export interface DiagnosticsInfo {
+  appVersion: string;
+  electronVersion: string;
+  ffmpeg: FfmpegStatus;
+  tempDir: string;
+  outputDir: string;
+}
+
+/** Result of running the trivial "Test FFmpeg" command. */
+export interface TestFfmpegResult {
+  success: boolean;
+  version: string | null;
+  details?: string;
 }
 
 export interface WaveformData {
@@ -73,6 +92,10 @@ export interface EditorApi {
   saveFileDialog(defaultName?: string, extensions?: string[]): Promise<SaveFileResult>;
   openPath(path: string): Promise<void>;
   showInFolder(path: string): Promise<void>;
+  getDiagnostics(): Promise<DiagnosticsInfo>;
+  testFfmpeg(): Promise<TestFfmpegResult>;
+  /** Convert an absolute filesystem path to a privileged media:// URL. */
+  toMediaUrl(path: string): string;
 
   // --- media ---
   importMediaPaths(paths: string[]): Promise<MediaAsset[]>;

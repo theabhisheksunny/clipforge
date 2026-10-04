@@ -75,8 +75,8 @@ export function Preview() {
     if (!video || !activeClip) return;
     const asset = assetMap.get(activeClip.assetId);
     if (!asset) return;
-    const src = `file://${asset.path}`;
-    if (!video.src.endsWith(encodeURI(asset.path)) && video.src !== src) {
+    const src = window.editorApi.toMediaUrl(asset.path);
+    if (video.src !== src) {
       video.src = src;
     }
     const sourceTime =
@@ -173,7 +173,7 @@ function ImageOverlayView({ clip, assetPath }: { clip: TimelineClip; assetPath: 
   const { transform } = clip;
   return (
     <img
-      src={`file://${assetPath}`}
+      src={assetPath ? window.editorApi.toMediaUrl(assetPath) : undefined}
       alt=""
       className="absolute pointer-events-none"
       style={{

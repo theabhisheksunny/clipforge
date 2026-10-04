@@ -50,12 +50,29 @@ export interface RenderProgress {
   message?: string;
 }
 
+/** Result of validating an exported file with ffprobe. */
+export interface RenderValidation {
+  ok: boolean;
+  hasVideo: boolean;
+  hasAudio: boolean;
+  audioStreamCount: number;
+  durationSeconds: number | null;
+  videoCodec: string | null;
+  audioCodec: string | null;
+  width: number | null;
+  height: number | null;
+  /** Human-readable issues; empty when ok. */
+  messages: string[];
+}
+
 export interface RenderResult {
   jobId: string;
   success: boolean;
   outputPath?: string;
   outputSizeBytes?: number;
   durationSeconds?: number;
+  /** Post-export ffprobe validation of the output file. */
+  validation?: RenderValidation;
   /** Raw ffmpeg output, surfaced only behind "Show Details". */
   details?: string;
   error?: string;

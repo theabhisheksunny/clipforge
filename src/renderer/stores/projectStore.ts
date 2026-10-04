@@ -17,12 +17,13 @@ import type {
   Transition,
   Canvas,
 } from '@shared/types';
-import { createProject, createClipFromAsset, createTrack } from '@shared/utils/factories';
+import { createProject, createClipFromAsset, createTrack, createId } from '@shared/utils/factories';
 import {
   splitClip as splitClipOp,
   duplicateClip as duplicateClipOp,
   setSpeed as setSpeedOp,
 } from '@shared/utils/timeline';
+import { planLoopVideoToAudio } from '@shared/utils/loop';
 import { DEFAULT_IMAGE_DURATION } from '@shared/constants';
 
 const HISTORY_LIMIT = 100;
@@ -69,6 +70,9 @@ interface ProjectState {
   addTrack: (kind: Track['kind']) => string;
   updateTrack: (trackId: string, patch: Partial<Track>) => void;
   removeTrack: (trackId: string) => void;
+
+  // features
+  loopVideoToAudio: (videoAssetId?: string, audioAssetId?: string) => void;
 
   // text
   addTextLayer: (layer: TextLayer) => void;
@@ -284,6 +288,98 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         d.clips = d.clips.filter((c) => c.trackId !== trackId);
         d.textLayers = d.textLayers.filter((l) => l.trackId !== trackId);
       }),
+
+    loopVideoToAudio: (videoAssetId, audioAssetId) => {
+      const { project } = get();
+
+      const videoAsset = videoAssetId
+        ? project.mediaAssets.find((a) => a.id === videoAssetId && a.kind === 'video')
+        : project.mediaAssets.find((a) => a.kind === 'video');
+      const audioAsset = audioAssetId
+        ? project.mediaAssets.find((a) => a.id === audioAssetId && a.kind === 'audio')
+        : project.mediaAssets.find((a) => a.kind === 'audio');
+
+      if (!videoAsset || !audioAsset) return;
+
+      const videoDuration = videoAsset.metadata.duration;
+      const audioDuration = audioAsset.metadata.duration;
+      if (videoDuration <= 0 || audioDuration <= 0) return;
+
+      const plan = planLoopVideoToAudio(videoDuration, audioDuration);
+
+      // Everything in a single commit so the whole operation undoes at once.
+      // Non-destructive: only timeline references are created, never file copies.
+      commit((d) => {
+        // Ensure a video track and an audio track exist (reuse the first of each).
+        let videoTrack = d.tracks.find((t) => t.kind === 'video');
+        if (!videoTrack) {
+          const order = d.tracks.filter((t) => t.kind === 'video').length;
+          videoTrack = createTrack('video', order);
+          d.tracks.push(videoTrack);
+        }
+        let audioTrack = d.tracks.find((t) => t.kind === 'audio');
+        if (!audioTrack) {
+          const order = d.tracks.filter((t) => t.kind === 'audio').length;
+          audioTrack = createTrack('audio', order);
+          d.tracks.push(audioTrack);
+        }
+        const videoTrackId = videoTrack.id;
+        const audioTrackId = audioTrack.id;
+
+        // Clear the target tracks so the action is idempotent/reversible.
+        d.clips = d.clips.filter(
+          (c) => c.trackId !== videoTrackId && c.trackId !== audioTrackId,
+        );
+
+        // Add the looped (muted) video clips, all referencing the SAME asset.
+        for (const planned of plan.clips) {
+          d.clips.push({
+            id: createId(),
+            assetId: videoAsset.id,
+            trackId: videoTrackId,
+            timelineStart: planned.timelineStart,
+            timelineDuration: planned.timelineDuration,
+            sourceStart: planned.sourceStart,
+            sourceEnd: planned.sourceEnd,
+            speed: 1,
+            transform: {
+              x: 0.5,
+              y: 0.5,
+              scale: 1,
+              rotation: 0,
+              flipHorizontal: false,
+              flipVertical: false,
+              opacity: 1,
+            },
+            crop: { top: 0, bottom: 0, left: 0, right: 0 },
+            audio: { muted: true, volume: 0, fadeInSeconds: 0, fadeOutSeconds: 0 },
+          });
+        }
+
+        // Add the single, non-looped audio clip at full length.
+        d.clips.push({
+          id: createId(),
+          assetId: audioAsset.id,
+          trackId: audioTrackId,
+          timelineStart: 0,
+          timelineDuration: audioDuration,
+          sourceStart: 0,
+          sourceEnd: audioDuration,
+          speed: 1,
+          transform: {
+            x: 0.5,
+            y: 0.5,
+            scale: 1,
+            rotation: 0,
+            flipHorizontal: false,
+            flipVertical: false,
+            opacity: 1,
+          },
+          crop: { top: 0, bottom: 0, left: 0, right: 0 },
+          audio: { muted: false, volume: 1, fadeInSeconds: 0, fadeOutSeconds: 0 },
+        });
+      });
+    },
 
     addTextLayer: (layer) =>
       commit((d) => {

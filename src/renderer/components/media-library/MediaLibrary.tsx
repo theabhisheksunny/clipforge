@@ -3,6 +3,7 @@ import { useProjectStore } from '../../stores/projectStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { ImportIcon, SearchIcon, VideoIcon, MusicIcon, ImageIcon, TrashIcon } from '../Icons';
 import { ALL_MEDIA_EXTENSIONS, type MediaAsset } from '@shared/types';
+import { planLoopVideoToAudio } from '@shared/utils/loop';
 import { formatDuration } from '../../utils/format';
 
 type SortKey = 'name' | 'kind' | 'recent';
@@ -12,14 +13,17 @@ export function MediaLibrary() {
   const addAssets = useProjectStore((s) => s.addAssets);
   const removeAsset = useProjectStore((s) => s.removeAsset);
   const updateAsset = useProjectStore((s) => s.updateAsset);
+  const loopVideoToAudio = useProjectStore((s) => s.loopVideoToAudio);
   const search = useEditorStore((s) => s.mediaSearch);
   const setSearch = useEditorStore((s) => s.setMediaSearch);
 
   const [sortKey, setSortKey] = useState<SortKey>('recent');
   const [importing, setImporting] = useState(false);
+  const [failedImports, setFailedImports] = useState<string[]>([]);
 
   const handleImport = async () => {
     setImporting(true);
+    setFailedImports([]);
     try {
       const res = await window.editorApi.openFilesDialog([
         { name: 'Media Files', extensions: [...ALL_MEDIA_EXTENSIONS] },
@@ -28,6 +32,10 @@ export function MediaLibrary() {
       if (!res.cancelled && res.paths.length) {
         const imported = await window.editorApi.importMediaPaths(res.paths);
         addAssets(imported);
+        // Surface any files that could not be read instead of silently
+        // adding them as "missing" assets.
+        const failed = imported.filter((a) => a.missing).map((a) => a.name);
+        setFailedImports(failed);
       }
     } finally {
       setImporting(false);
@@ -45,13 +53,56 @@ export function MediaLibrary() {
     return list;
   }, [assets, search, sortKey]);
 
+  // Loop Video to Audio operates on the first video + first audio asset.
+  const loopInfo = useMemo(() => {
+    const video = assets.find((a) => a.kind === 'video');
+    const audio = assets.find((a) => a.kind === 'audio');
+    if (!video || !audio) return null;
+    const videoDuration = video.metadata.duration;
+    const audioDuration = audio.metadata.duration;
+    if (videoDuration <= 0 || audioDuration <= 0) return null;
+    const { repetitions } = planLoopVideoToAudio(videoDuration, audioDuration);
+    return { repetitions, audioLonger: audioDuration > videoDuration };
+  }, [assets]);
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-2 border-b border-panel-border">
+      <div className="flex flex-col gap-2 p-2 border-b border-panel-border">
         <button className="btn-primary flex-1" onClick={handleImport} disabled={importing}>
           <ImportIcon width={16} height={16} />
           {importing ? 'Importing…' : 'Import Media'}
         </button>
+
+        {failedImports.length > 0 && (
+          <div className="text-[11px] text-red-400 leading-snug">
+            Could not import: {failedImports.join(', ')}
+          </div>
+        )}
+
+        {loopInfo && (
+          <button
+            className="btn-ghost w-full justify-center text-sm"
+            onClick={() => loopVideoToAudio()}
+            title="Loop the first video to cover the first audio track"
+          >
+            Loop Video to Audio
+          </button>
+        )}
+
+        {loopInfo?.audioLonger && (
+          <div className="rounded-md border border-accent/40 bg-accent/10 p-2 text-[12px] text-gray-200 leading-snug">
+            <p className="mb-2">
+              Audio is longer than video. Loop video {loopInfo.repetitions} times and trim the
+              last to match.
+            </p>
+            <button
+              className="btn-primary w-full justify-center"
+              onClick={() => loopVideoToAudio()}
+            >
+              Loop Video to Audio
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 px-2 py-1.5">

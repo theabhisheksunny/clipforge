@@ -6,6 +6,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '@shared/types';
+import { toMediaUrl } from '@shared/utils/mediaUrl';
 import type {
   EditorApi,
   ExportSettings,
@@ -21,6 +22,9 @@ const api: EditorApi = {
     ipcRenderer.invoke(IPC.dialogSaveFile, defaultName, extensions),
   openPath: (path) => ipcRenderer.invoke(IPC.openPath, path),
   showInFolder: (path) => ipcRenderer.invoke(IPC.showInFolder, path),
+  getDiagnostics: () => ipcRenderer.invoke(IPC.diagnostics),
+  testFfmpeg: () => ipcRenderer.invoke(IPC.testFfmpeg),
+  toMediaUrl: (path: string) => toMediaUrl(path),
 
   // media
   importMediaPaths: (paths) => ipcRenderer.invoke(IPC.mediaImportPaths, paths),

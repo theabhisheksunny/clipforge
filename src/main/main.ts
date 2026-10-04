@@ -12,11 +12,19 @@ import { fileURLToPath } from 'node:url';
 import { registerMediaIpc } from './ipc/media.ipc';
 import { registerProjectIpc } from './ipc/project.ipc';
 import { registerRenderIpc } from './ipc/render.ipc';
+import { registerSystemIpc } from './ipc/system.ipc';
 import { ensureCacheDirs, cleanStaleCache } from './services/cache/cachePaths';
 import { verifyFfmpeg } from './services/ffmpeg/ffmpegLocator';
+import {
+  registerMediaProtocolSchemes,
+  registerMediaProtocolHandler,
+} from './services/media/mediaProtocol';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+// Privileged schemes must be registered before the app is ready.
+registerMediaProtocolSchemes();
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -94,9 +102,12 @@ app.whenReady().then(async () => {
   ensureCacheDirs();
   cleanStaleCache();
 
+  registerMediaProtocolHandler();
+
   registerMediaIpc();
   registerProjectIpc();
   registerRenderIpc();
+  registerSystemIpc();
 
   buildMenu();
   createWindow();

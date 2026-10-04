@@ -141,4 +141,56 @@ describe('buildFilterGraph', () => {
     const toIndex = graph.inputArgs.indexOf('-to');
     expect(graph.inputArgs[toIndex + 1]).toBe('55');
   });
+
+  it('concatenates three sequential base-track clips with concat=n=3', () => {
+    // Three placements of the SAME source on the base video track must be
+    // composited with concat (not overlay), one input per placement.
+    const asset = videoAsset('C:/media/loop.mp4', 60);
+    const project = buildProjectWith([asset]);
+    const trackId = project.tracks.find((t) => t.kind === 'video')!.id;
+    project.clips = [
+      createClipFromAsset({ asset, trackId, timelineStart: 0 }),
+      createClipFromAsset({ asset, trackId, timelineStart: 60 }),
+      createClipFromAsset({ asset, trackId, timelineStart: 120 }),
+    ];
+
+    const graph = buildFilterGraph(project, OPTS(project));
+
+    // Three distinct inputs for the same path.
+    const iPaths: string[] = [];
+    for (let i = 0; i < graph.inputArgs.length; i++) {
+      if (graph.inputArgs[i] === '-i') iPaths.push(graph.inputArgs[i + 1]);
+    }
+    expect(iPaths.filter((p) => p === 'C:/media/loop.mp4').length).toBe(3);
+
+    // Composited via concat, not overlay-enable.
+    expect(graph.filterComplex).toContain('concat=n=3:v=1:a=0');
+    expect(graph.filterComplex).not.toContain('overlay=');
+  });
+
+  it('excludes a muted video clip audio and normalizes present audio to 48kHz stereo', () => {
+    // A muted video clip contributes NO audio; its per-clip audio label is
+    // absent and (as the only clip) there is no audio output at all.
+    const muted = videoAsset('C:/media/muted.mp4', 10);
+    const mutedProject = buildProjectWith([muted]);
+    const mutedTrack = mutedProject.tracks.find((t) => t.kind === 'video')!.id;
+    const mutedClip = createClipFromAsset({ asset: muted, trackId: mutedTrack, timelineStart: 0 });
+    mutedClip.audio.muted = true;
+    mutedProject.clips = [mutedClip];
+
+    const mutedGraph = buildFilterGraph(mutedProject, OPTS(mutedProject));
+    expect(mutedGraph.audioOutLabel).toBeNull();
+    expect(mutedGraph.filterComplex).not.toContain(`a_${mutedClip.id}`);
+
+    // When audio IS present it is normalized to 48kHz stereo.
+    const audible = videoAsset('C:/media/audible.mp4', 10);
+    const audibleProject = buildProjectWith([audible]);
+    const audibleTrack = audibleProject.tracks.find((t) => t.kind === 'video')!.id;
+    audibleProject.clips = [createClipFromAsset({ asset: audible, trackId: audibleTrack, timelineStart: 0 })];
+
+    const audibleGraph = buildFilterGraph(audibleProject, OPTS(audibleProject));
+    expect(audibleGraph.audioOutLabel).toBe('[aout]');
+    expect(audibleGraph.filterComplex).toContain('aresample=48000');
+    expect(audibleGraph.filterComplex).toContain('aformat=channel_layouts=stereo');
+  });
 });

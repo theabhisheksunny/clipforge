@@ -9,10 +9,17 @@ import {
   SplitIcon,
   TrashIcon,
   DuplicateIcon,
+  SettingsIcon,
 } from '../Icons';
 import { ALL_MEDIA_EXTENSIONS } from '@shared/types';
 
-export function Toolbar({ onExport }: { onExport: () => void }) {
+export function Toolbar({
+  onExport,
+  onOpenDiagnostics,
+}: {
+  onExport: () => void;
+  onOpenDiagnostics: () => void;
+}) {
   const projectName = useProjectStore((s) => s.project.projectName);
   const dirty = useProjectStore((s) => s.dirty);
   const canUndo = useProjectStore((s) => s.canUndo);
@@ -90,6 +97,10 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
       </button>
 
       <div className="flex-1" />
+
+      <button className="icon-btn" onClick={onOpenDiagnostics} title="Diagnostics">
+        <SettingsIcon width={16} height={16} />
+      </button>
 
       <button className="btn-primary" onClick={onExport} title="Export (Ctrl+E)">
         <ExportIcon width={16} height={16} /> Export

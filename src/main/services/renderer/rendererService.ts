@@ -8,14 +8,92 @@ import { existsSync, statSync } from 'node:fs';
 import { buildFilterGraph } from './filterGraph';
 import { buildEncoderConfig } from './exportSettings';
 import { runFfmpeg } from '../ffmpeg/ffmpegRunner';
+import { probeMediaMetadata } from '../media/probe';
 import { createId } from '@shared/utils/factories';
 import type {
   ExportSettings,
   Project,
   RenderProgress,
   RenderResult,
+  RenderValidation,
   MediaAsset,
 } from '@shared/types';
+
+const VALID_VIDEO_CODECS = new Set(['h264', 'hevc', 'h265', 'vp9', 'av1']);
+const VALID_AUDIO_CODECS = new Set(['aac', 'opus', 'mp3', 'vorbis']);
+const DURATION_TOLERANCE_SECONDS = 1.0;
+
+/**
+ * Validate an exported file with ffprobe. `expectedDuration` is the graph's
+ * total duration (which, for a loop export, equals the audio length).
+ */
+async function validateOutput(
+  outputPath: string,
+  expectedDuration: number,
+): Promise<RenderValidation> {
+  const messages: string[] = [];
+
+  if (!existsSync(outputPath)) {
+    return {
+      ok: false,
+      hasVideo: false,
+      hasAudio: false,
+      audioStreamCount: 0,
+      durationSeconds: null,
+      videoCodec: null,
+      audioCodec: null,
+      width: null,
+      height: null,
+      messages: ['The exported file does not exist.'],
+    };
+  }
+
+  const meta = await probeMediaMetadata(outputPath);
+  const video = meta.videoStreams[0] ?? null;
+  const audio = meta.audioStreams[0] ?? null;
+  const hasVideo = meta.videoStreams.length > 0;
+  const audioStreamCount = meta.audioStreams.length;
+  const hasAudio = audioStreamCount > 0;
+  const durationSeconds = meta.duration > 0 ? meta.duration : null;
+  const videoCodec = video?.codec ?? null;
+  const audioCodec = audio?.codec ?? null;
+
+  if (!hasVideo) messages.push('The export has no video stream.');
+  if (!hasAudio) messages.push('The export has no audio stream.');
+  if (audioStreamCount > 1) {
+    messages.push(`The export has ${audioStreamCount} audio streams; expected exactly one.`);
+  }
+  if (durationSeconds == null) {
+    messages.push('Could not determine the export duration.');
+  } else if (Math.abs(durationSeconds - expectedDuration) > DURATION_TOLERANCE_SECONDS) {
+    messages.push(
+      `Export duration ${durationSeconds.toFixed(2)}s differs from the expected ${expectedDuration.toFixed(2)}s.`,
+    );
+  }
+  // Video must not be shorter than the audio (both should match the output).
+  if (durationSeconds != null && hasAudio && durationSeconds + DURATION_TOLERANCE_SECONDS < expectedDuration) {
+    messages.push('The video track is shorter than the audio track.');
+  }
+  if (videoCodec && !VALID_VIDEO_CODECS.has(videoCodec)) {
+    messages.push(`Unexpected video codec: ${videoCodec}.`);
+  }
+  if (audioCodec && !VALID_AUDIO_CODECS.has(audioCodec)) {
+    messages.push(`Unexpected audio codec: ${audioCodec}.`);
+  }
+
+  return {
+    ok: messages.length === 0,
+    hasVideo,
+    hasAudio,
+    audioStreamCount,
+    durationSeconds,
+    videoCodec,
+    audioCodec,
+    width: video?.width ?? null,
+    height: video?.height ?? null,
+    messages,
+  };
+}
 
 type ProgressCallback = (p: RenderProgress) => void;
 
@@ -150,6 +228,47 @@ export async function exportProject(
     }
 
     const size = statSync(settings.outputPath).size;
+
+    // Validate the output with ffprobe before declaring success.
+    report({ stage: 'finalizing', progress: 0.99, etaSeconds: 0, outputSizeBytes: size });
+    let validation: RenderValidation;
+    try {
+      validation = await validateOutput(settings.outputPath, graph.durationSeconds);
+    } catch (err) {
+      validation = {
+        ok: false,
+        hasVideo: false,
+        hasAudio: false,
+        audioStreamCount: 0,
+        durationSeconds: null,
+        videoCodec: null,
+        audioCodec: null,
+        width: null,
+        height: null,
+        messages: [`Could not validate the export: ${(err as Error).message}`],
+      };
+    }
+
+    if (!validation.ok) {
+      report({
+        stage: 'error',
+        progress: 1,
+        etaSeconds: 0,
+        outputSizeBytes: size,
+        message: 'The export completed but failed validation.',
+      });
+      return {
+        jobId,
+        success: false,
+        outputPath: settings.outputPath,
+        outputSizeBytes: size,
+        durationSeconds: graph.durationSeconds,
+        validation,
+        error: 'The export completed but failed validation. See details.',
+        details: `${validation.messages.join('\n')}\n\n${result.stderr}`,
+      };
+    }
+
     report({ stage: 'done', progress: 1, etaSeconds: 0, outputSizeBytes: size });
 
     return {
@@ -158,6 +277,7 @@ export async function exportProject(
       outputPath: settings.outputPath,
       outputSizeBytes: size,
       durationSeconds: graph.durationSeconds,
+      validation,
       details: result.stderr,
     };
   } catch (err) {

@@ -169,6 +169,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   <div>Duration: {formatTime(result.durationSeconds ?? 0)}</div>
                   <div>Size: {formatBytes(result.outputSizeBytes)}</div>
                   <div className="truncate">File: {result.outputPath}</div>
+                  {result.validation && (
+                    <div className="text-green-400/80">
+                      Validated: {result.validation.width}×{result.validation.height},{' '}
+                      {result.validation.videoCodec} + {result.validation.audioCodec},{' '}
+                      {result.validation.audioStreamCount} audio stream
+                      {result.validation.audioStreamCount === 1 ? '' : 's'}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button className="btn-ghost" onClick={() => result.outputPath && window.editorApi.openPath(result.outputPath)}>Open File</button>

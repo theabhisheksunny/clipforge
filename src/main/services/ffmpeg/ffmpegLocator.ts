@@ -90,6 +90,7 @@ export async function verifyFfmpeg(): Promise<FfmpegStatus> {
       ffmpegPath,
       ffprobePath,
       ffmpegVersion: ffmpeg.version,
+      ffprobeVersion: ffprobe.version,
     };
   }
 
@@ -102,6 +103,7 @@ export async function verifyFfmpeg(): Promise<FfmpegStatus> {
     ffmpegPath: ffmpeg.ok ? ffmpegPath : null,
     ffprobePath: ffprobe.ok ? ffprobePath : null,
     ffmpegVersion: ffmpeg.version,
+    ffprobeVersion: ffprobe.version,
     error: `${missing.join(' and ')} could not be found or executed. Install FFmpeg or set FFMPEG_PATH / FFPROBE_PATH.`,
   };
 }
